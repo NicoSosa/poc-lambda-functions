@@ -1,42 +1,45 @@
 const util = require('./utils/util')
 
-const userService = require('./service/userService');
+const tasksPackageService = require('./service/tasksPackageService');
 
-const taskPackagePath = '/taskPackage';
-const userPath = '/user/{id}';
+const tasksPackagePath = '/task-package';
+const tasksPackageIdPath = `${tasksPackagePath}/{id}`;
 
 exports.handler = async (event, context, callback) => {
     let response;
+    let id;
+    let body; 
+    
     console.log('Request Event', event);
     switch (true) {
-        case event.httpMethod === 'POST' && event.path === taskPackagePath:
-            // const loginBody = JSON.parse(event.body);
-            // response = await loginService.login(loginBody);
+        // TasksPackageAsync
+        case event.httpMethod === 'GET' && event.resource === tasksPackagePath:
+            response = util.buildResponse(200, {message: 'Handle Get All Method'});
+            // response = await tasksPackageService.getAllTasksPackagesAsync();
             break;
             
-        case event.httpMethod === 'GET' && event.resource === userPath:
-            const getId = event.pathParameters.id;
-            const user = await userService.getUserById(getId);
-            if (!user || !user.userData || !user.userName) {
-                response = util.buildResponse(400, { message: 'User does not exists' });
-            } else {
-                const userResponse = {
-                    userId: user.userName,
-                    userData: {...user.userData}
-                }
-                response = util.buildResponse(200, userResponse);
-            }
+        case event.httpMethod === 'POST' && event.resource === tasksPackagePath:
+            body = JSON.parse(event.body);
+            // response = await tasksPackageService.createTasksPackageAsync(newTasksPackage);
+            response = util.buildResponse(200, {message:'Handle Create Method', body});
             break;
-            
-        case event.httpMethod === 'PUT' && event.resource === userPath:
-            const putId = event.pathParameters.id;
-            const userBody = JSON.parse(event.body);
-            response = await userService.updateUserAsync(putId, userBody);
+
+        case event.httpMethod === 'GET' && event.resource === tasksPackageIdPath:
+            id = event.pathParameters.id;
+            //response = util.buildResponse(200, {message:'Handle get Method', id});
+            response = await tasksPackageService.getTasksPackageByIdAsync(id);
             break;
-        
-        case event.httpMethod === 'POST':
-            const loginUser = JSON.parse(event.body);
-            response = await loginService.login(loginUser);
+
+        case event.httpMethod === 'PUT' && event.resource === tasksPackageIdPath:
+            id = event.pathParameters.id;
+            body = JSON.parse(event.body);
+            //response = util.buildResponse(200, {message:'Handle udpdate Method', body});
+            response = await tasksPackageService.updateTasksPackageAsync(id, body);
+            break;
+        case event.httpMethod === 'DELETE' && event.resource === tasksPackageIdPath:
+            id = event.pathParameters.id;
+            // response = await tasksPackageService.deleteTasksPackageAsync(id);
+            response = util.buildResponse(200, {message:'Handle Delete Method', id});
             break;
         
         default:

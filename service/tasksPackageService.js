@@ -1,6 +1,8 @@
+const { v4: uuidv4 } = require('uuid');
 const { DynamoDBClient, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemCommand } = require("@aws-sdk/client-dynamodb");
 const { marshall, unmarshall, convertList } = require("@aws-sdk/util-dynamodb");
 const db = new DynamoDBClient({ region: 'sa-east-1' });
+
 
 const util = require('../utils/util');
 
@@ -30,7 +32,7 @@ const getAllTasksPackagesAsync = async () => {
 };
 
 const createTasksPackageAsync = async (newTasksPackage) => {
-    const newId = '826bc4bcf46c'
+    const newId = uuidv4();
     const params = {
         TableName: tasksPackageTable,
         Item: marshall({

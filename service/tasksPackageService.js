@@ -30,7 +30,7 @@ const getAllTasksPackagesAsync = async () => {
 };
 
 const createTasksPackageAsync = async (newTasksPackage) => {
-    const newId = 'asdzxc123'
+    const newId = '826bc4bcf46c'
     const params = {
         TableName: tasksPackageTable,
         Item: marshall({

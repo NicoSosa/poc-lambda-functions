@@ -14,14 +14,14 @@ exports.handler = async (event, context, callback) => {
     switch (true) {
         // TasksPackageAsync
         case event.httpMethod === 'GET' && event.resource === tasksPackagePath:
-            response = util.buildResponse(200, {message: 'Handle Get All Method'});
-            // response = await tasksPackageService.getAllTasksPackagesAsync();
+            //response = util.buildResponse(200, {message: 'Handle Get All Method'});
+            response = await tasksPackageService.getAllTasksPackagesAsync();
             break;
             
         case event.httpMethod === 'POST' && event.resource === tasksPackagePath:
             body = JSON.parse(event.body);
-            // response = await tasksPackageService.createTasksPackageAsync(newTasksPackage);
-            response = util.buildResponse(200, {message:'Handle Create Method', body});
+            //response = util.buildResponse(200, {message:'Handle Create Method', body});
+            response = await tasksPackageService.createTasksPackageAsync(body);
             break;
 
         case event.httpMethod === 'GET' && event.resource === tasksPackageIdPath:
@@ -38,8 +38,8 @@ exports.handler = async (event, context, callback) => {
             break;
         case event.httpMethod === 'DELETE' && event.resource === tasksPackageIdPath:
             id = event.pathParameters.id;
-            // response = await tasksPackageService.deleteTasksPackageAsync(id);
-            response = util.buildResponse(200, {message:'Handle Delete Method', id});
+            //response = util.buildResponse(200, {message:'Handle Delete Method', id});
+            response = await tasksPackageService.deleteTasksPackageAsync(id);
             break;
         
         default:

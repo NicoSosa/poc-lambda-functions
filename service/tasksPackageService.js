@@ -3,7 +3,6 @@ const { DynamoDBClient, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemC
 const { marshall, unmarshall, convertList } = require("@aws-sdk/util-dynamodb");
 const db = new DynamoDBClient({ region: 'sa-east-1' });
 
-
 const util = require('../utils/util');
 
 const tasksPackageTable = 'TasksPackagesTable';
@@ -83,7 +82,7 @@ const updateTasksPackageAsync = async (tasksPackageId, tasksPackageBody) => {
 
     const updateResponse = await updateTasksPackagOnDbeAsync(tasksPackageId, newTaskPackageData);
 
-    if (!updateResponse) return serverErrorResponse
+    if (!updateResponse) return serverErrorResponse()
 
     return util.buildResponse(200, {
         message: 'Tasks Package data updated successfully',

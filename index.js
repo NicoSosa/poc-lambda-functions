@@ -1,45 +1,35 @@
 const util = require('./utils/util')
 
-const tasksPackageService = require('./service/tasksPackageService');
+const taskPackageResource = require('./resources/taskPackage/taskPackageResource');
+const taskPackageIdResource = require('./resources/taskPackage/taskPackageIdResource');
+const templateResource = require('./resources/template/templateResource');
+const templateIdResource = require('./resources/template/templateIdResource');
 
 const tasksPackagePath = '/task-package';
 const tasksPackageIdPath = `${tasksPackagePath}/{id}`;
+const templatePath = '/template';
+const templateIdPath = `${templatePath}/{id}`;
+
 
 exports.handler = async (event, context, callback) => {
     let response;
-    let id;
-    let body; 
-    
+
     console.log('Request Event', event);
     switch (true) {
-        // TasksPackageAsync
-        case event.httpMethod === 'GET' && event.resource === tasksPackagePath:
-            //response = util.buildResponse(200, {message: 'Handle Get All Method'});
-            response = await tasksPackageService.getAllTasksPackagesAsync();
-            break;
-            
-        case event.httpMethod === 'POST' && event.resource === tasksPackagePath:
-            body = JSON.parse(event.body);
-            //response = util.buildResponse(200, {message:'Handle Create Method', body});
-            response = await tasksPackageService.createTasksPackageAsync(body);
+        case event.resource === tasksPackagePath:
+            response = await taskPackageResource.resourceMethod(event)
             break;
 
-        case event.httpMethod === 'GET' && event.resource === tasksPackageIdPath:
-            id = event.pathParameters.id;
-            //response = util.buildResponse(200, {message:'Handle get Method', id});
-            response = await tasksPackageService.getTasksPackageByIdAsync(id);
+        case event.resource === tasksPackageIdPath:
+            response = await taskPackageIdResource.resourceMethod(event)
             break;
 
-        case event.httpMethod === 'PUT' && event.resource === tasksPackageIdPath:
-            id = event.pathParameters.id;
-            body = JSON.parse(event.body);
-            //response = util.buildResponse(200, {message:'Handle udpdate Method', body});
-            response = await tasksPackageService.updateTasksPackageAsync(id, body);
+        case event.resource === templatePath:
+            response = await templateResource.resourceMethod(event)
             break;
-        case event.httpMethod === 'DELETE' && event.resource === tasksPackageIdPath:
-            id = event.pathParameters.id;
-            //response = util.buildResponse(200, {message:'Handle Delete Method', id});
-            response = await tasksPackageService.deleteTasksPackageAsync(id);
+
+        case event.resource === templateIdPath:
+            response = await templateIdResource.resourceMethod(event)
             break;
         
         default:

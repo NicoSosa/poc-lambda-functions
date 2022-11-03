@@ -9,6 +9,15 @@ exports.handler = async (event, context, callback) => {
     console.log('Request Event', event);
     try {
         switch (true) {
+            // PROJECT
+            case event.resource === paths.projectPath:
+                response = await resources.projectResource.resourceMethod(event)
+                break;
+    
+            case event.resource === paths.projectPathIdPath:
+                response = await resources.projectIdResource.resourceMethod(event)
+                break;
+
             // TASK-PACKAGE
             case event.resource === paths.tasksPackagePath:
                 response = await resources.taskPackageResource.resourceMethod(event)

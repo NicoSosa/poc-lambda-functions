@@ -1,20 +1,7 @@
-const util = require('./utils/util')
+const util = require('./utils/util');
 
-const taskPackageResource = require('./resources/taskPackage/taskPackageResource');
-const taskPackageIdResource = require('./resources/taskPackage/taskPackageIdResource');
-const templateResource = require('./resources/template/templateResource');
-const templateIdResource = require('./resources/template/templateIdResource');
-const workspaceResource = require('./resources/workspace/workspaceResource');
-const workspaceIdResource = require('./resources/workspace/workspaceIdResource');
-
-
-const tasksPackagePath = '/task-package';
-const tasksPackageIdPath = `${tasksPackagePath}/{id}`;
-const templatePath = '/template';
-const templateIdPath = `${templatePath}/{id}`;
-const workspacePath = '/workspace';
-const workspaceIdPath = `${workspacePath}/{id}`;
-
+const resources = require('./resources/resources');
+const paths = require('./paths/paths');
 
 exports.handler = async (event, context, callback) => {
     let response;
@@ -22,30 +9,30 @@ exports.handler = async (event, context, callback) => {
     console.log('Request Event', event);
     switch (true) {
         // TASK-PACKAGE
-        case event.resource === tasksPackagePath:
-            response = await taskPackageResource.resourceMethod(event)
+        case event.resource === paths.tasksPackagePath:
+            response = await resources.taskPackageResource.resourceMethod(event)
             break;
 
-        case event.resource === tasksPackageIdPath:
-            response = await taskPackageIdResource.resourceMethod(event)
+        case event.resource === paths.tasksPackageIdPath:
+            response = await resources.taskPackageIdResource.resourceMethod(event)
             break;
 
         // TEMPLATE
-        case event.resource === templatePath:
-            response = await templateResource.resourceMethod(event)
+        case event.resource === paths.templatePath:
+            response = await resources.templateResource.resourceMethod(event)
             break;
 
-        case event.resource === templateIdPath:
-            response = await templateIdResource.resourceMethod(event)
+        case event.resource === paths.templateIdPath:
+            response = await resources.templateIdResource.resourceMethod(event)
             break;  
         
         // WORKSPACE
-        case event.resource === workspacePath:
-            response = await workspaceResource.resourceMethod(event)
+        case event.resource === paths.workspacePath:
+            response = await resources.workspaceResource.resourceMethod(event)
             break;
 
-        case event.resource === workspaceIdPath:
-            response = await workspaceIdResource.resourceMethod(event)
+        case event.resource === paths.workspaceIdPath:
+            response = await resources.workspaceIdResource.resourceMethod(event)
             break;
 
         default:

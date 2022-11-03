@@ -5,12 +5,12 @@ const db = new DynamoDBClient({ region: 'sa-east-1' });
 
 const util = require('../utils/util');
 
-const templateTable = 'TemplateTable';
+const workspaceTable = 'WorkspaceTable';
 
 
-const getAllTemplatesAsync = async () => {
+const getAllWorkspacesAsync = async () => {
     const params = {
-        TableName: templateTable,
+        TableName: workspaceTable,
     };
 
     try {
@@ -19,7 +19,7 @@ const getAllTemplatesAsync = async () => {
         const listResponse = response.Items?.map( item => {
             const commonItem = unmarshall(item)
             return {
-                id: commonItem.templateId,
+                id: commonItem.workspaceId,
                 ...commonItem.data
             }
         });
@@ -30,14 +30,14 @@ const getAllTemplatesAsync = async () => {
     }
 };
 
-const createTemplateAsync = async (newTemplate) => {
+const createWorkspaceAsync = async (newWorkspace) => {
     const newId = uuidv4();
     const params = {
-        TableName: templateTable,
+        TableName: workspaceTable,
         Item: marshall({
-            templateId: newId,
+            workspaceId: newId,
             data: {
-                ...newTemplate
+                ...newWorkspace
             }
         }),
     } 
@@ -48,11 +48,11 @@ const createTemplateAsync = async (newTemplate) => {
         if (!response) return serverErrorResponse
 
         return util.buildResponse(200, {
-            message: 'Template created successfully',
+            message: 'Workspace created successfully',
             metadata: response,
-            template: {
+            workspace: {
                 id: newId,
-                ...newTemplate
+                ...newWorkspace
             }
         });
     } catch (e) {
@@ -60,55 +60,54 @@ const createTemplateAsync = async (newTemplate) => {
     }
 };
 
-const getTemplateByIdAsync = async (templateId) => {
-    const dbTemplate = await getTemplateFromDbAsync(templateId);
-    if ( !validateTemplateExist(dbTemplate) ) return templateDoesNotExistResponse()
+const getWorkspaceByIdAsync = async (workspaceId) => {
+    const dbWorkspace = await getWorkspaceFromDbAsync(workspaceId);
+    if ( !validateWorkspaceExist(dbWorkspace) ) return workspaceDoesNotExistResponse()
 
-    const templateResponse = {
-        id: templateId,
-        ...dbTemplate.data
+    const workspaceResponse = {
+        id: workspaceId,
+        ...dbWorkspace.data
     }
-    return util.buildResponse(200, templateResponse);
-
+    return util.buildResponse(200, workspaceResponse);
 };
 
-const updateTemplateAsync = async (templateId, templateBody) => {
-    const dbTemplate = await getTemplateFromDbAsync(templateId);
-    if ( !validateTemplateExist(dbTemplate) ) return templateDoesNotExistResponse()
+const updateWorkspaceAsync = async (workspaceId, workspaceBody) => {
+    const dbWorkspace = await getWorkspaceFromDbAsync(workspaceId);
+    if ( !validateWorkspaceExist(dbWorkspace) ) return workspaceDoesNotExistResponse()
 
-    const newTemplateData = {
-        ...templateBody
+    const newWorkspaceData = {
+        ...workspaceBody
     };
 
-    const updateResponse = await updateTemplateOnDbAsync(templateId, newTemplateData);
+    const updateResponse = await updateWorkspaceOnDbAsync(workspaceId, newWorkspaceData);
 
     if (!updateResponse) return serverErrorResponse()
 
     return util.buildResponse(200, {
-        message: 'Template data updated successfully',
+        message: 'Workspace data updated successfully',
         metadata: updateResponse,
-        updatedData: {...newTemplateData}
+        updatedData: {...newWorkspaceData}
     });
 
 };
 
-const deleteTemplateAsync = async (templateId) => {
-    const dbTemplate = await getTemplateFromDbAsync(templateId);
-    if ( !validateTemplateExist(dbTemplate) ) return templateDoesNotExistResponse()
+const deleteWorkspaceAsync = async (workspaceId) => {
+    const dbWorkspace = await getWorkspaceFromDbAsync(workspaceId);
+    if ( !validateWorkspaceExist(dbWorkspace) ) return workspaceDoesNotExistResponse()
     
-    const deleteResponse = await deleteFromDbAsync(templateId);
+    const deleteResponse = await deleteFromDbAsync(workspaceId);
     return util.buildResponse(200,{
-        message: 'Template deleted successfully',
+        message: 'Workspace deleted successfully',
         metadata: deleteResponse
     })
 
 };
 
 // NOT EXPORTED FUNCTIONS
-const getTemplateFromDbAsync = async (templateId) => {
+const getWorkspaceFromDbAsync = async (workspaceId) => {
     const params = {
-        TableName: templateTable,
-        Key: marshall({ templateId })
+        TableName: workspaceTable,
+        Key: marshall({ workspaceId })
     };
 
     try {
@@ -120,13 +119,13 @@ const getTemplateFromDbAsync = async (templateId) => {
     }
 };
 
-const updateTemplateOnDbAsync = async (templateId, newTemplateData) => {
+const updateWorkspaceOnDbAsync = async (workspaceId, newWorkspaceData) => {
     const params = {
-        TableName: templateTable,
+        TableName: workspaceTable,
         Item: marshall({
-            templateId,
+            workspaceId,
             data: {
-                ...newTemplateData
+                ...newWorkspaceData
             }
         }),
     } 
@@ -140,10 +139,10 @@ const updateTemplateOnDbAsync = async (templateId, newTemplateData) => {
     }
 };
 
-const deleteFromDbAsync = async (templateId) => {
+const deleteFromDbAsync = async (workspaceId) => {
     const params = {
-        TableName: templateTable,
-        Key: marshall({ templateId })
+        TableName: workspaceTable,
+        Key: marshall({ workspaceId })
     };
 
     try {
@@ -155,18 +154,18 @@ const deleteFromDbAsync = async (templateId) => {
     }
 };
 
-const validateTemplateExist = (template) => {
-    if ( !template || !template.data || !template.templateId ) return false
+const validateWorkspaceExist = (workspace) => {
+    if ( !workspace || !workspace.data || !workspace.workspaceId ) return false
     return true
 };
 
-const templateDoesNotExistResponse = () => util.buildResponse(400, { message: 'Template does not exists' });
+const workspaceDoesNotExistResponse = () => util.buildResponse(400, { message: 'Workspace does not exists' });
 const serverErrorResponse = () => util.buildResponse(503, { message: 'Server Error. Please try again later.'});
 
 module.exports = {
-    getAllTemplatesAsync,
-    createTemplateAsync,
-    getTemplateByIdAsync,
-    updateTemplateAsync,
-    deleteTemplateAsync
+    getAllWorkspacesAsync,
+    createWorkspaceAsync,
+    getWorkspaceByIdAsync,
+    updateWorkspaceAsync,
+    deleteWorkspaceAsync
 };

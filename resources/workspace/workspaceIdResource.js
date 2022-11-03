@@ -1,5 +1,5 @@
 const util = require('../../utils/util')
-const templateService = require('../../service/templateService');
+const workspaceService = require('../../service/workspaceService');
 
 const resourceMethod = async(event) => { 
     let response;
@@ -9,18 +9,18 @@ const resourceMethod = async(event) => {
     switch (event.httpMethod) {
         case 'GET':
             id = event.pathParameters.id;
-            response = await templateService.getTemplateByIdAsync(id);
+            response = await workspaceService.getWorkspaceByIdAsync(id);
             break;
 
         case 'PUT':
             id = event.pathParameters.id;
             body = JSON.parse(event.body);
-            response = await templateService.updateTemplateAsync(id, body);
+            response = await workspaceService.updateWorkspaceAsync(id, body);
             break;
 
         case 'DELETE':
             id = event.pathParameters.id;
-            response = await templateService.deleteTemplateAsync(id);
+            response = await workspaceService.deleteWorkspaceAsync(id);
             break;
 
         default:

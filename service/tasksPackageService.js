@@ -48,7 +48,7 @@ const createTasksPackageAsync = async (newTasksPackage) => {
         if (!response) return serverErrorResponse
 
         return util.buildResponse(200, {
-            message: 'Tasks Package crated successfully',
+            message: 'Tasks Package created successfully',
             metadata: response,
             taskPackage: {
                 id: newId,
@@ -87,7 +87,7 @@ const updateTasksPackageAsync = async (tasksPackageId, tasksPackageBody) => {
     return util.buildResponse(200, {
         message: 'Tasks Package data updated successfully',
         metadata: updateResponse,
-        newTaskPackageData
+        updatedData: {...newTaskPackageData}
     });
 
 };

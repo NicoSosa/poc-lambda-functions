@@ -1,7 +1,7 @@
-const util = require('./utils/util');
+const util = require('./src/utils/util');
 
-const resources = require('./resources/resources');
-const paths = require('./paths/paths');
+const resources = require('./src/resources/resources');
+const paths = require('./src/paths/paths');
 
 exports.handler = async (event, context, callback) => {
     let response;
@@ -16,6 +16,10 @@ exports.handler = async (event, context, callback) => {
     
             case event.resource === paths.projectPathIdPath:
                 response = await resources.projectIdResource.resourceMethod(event)
+                break;
+
+            case event.resource === paths.projectByWorkspaceIdPath:
+                response = await resources.projectByWorkspaceIdResource.resourceMethod(event)
                 break;
 
             // TASK-PACKAGE

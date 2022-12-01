@@ -3,9 +3,13 @@ const { DynamoDBClient, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemC
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb");
 const db = new DynamoDBClient({ region: 'sa-east-1' });
 
-const util = require('../utils/util');
-
 const workspaceTable = 'WorkspaceTable';
+
+const workspaceValidations = require('../infrastructure/validations/workspaceValidations');
+const workspaceResponses = require('../infrastructure/messages/workspaceResponses');
+const serverResponses = require('../infrastructure/messages/serverResponses');
+
+const util = require('../utils/util');
 
 
 const getAllWorkspacesAsync = async () => {
@@ -45,7 +49,7 @@ const createWorkspaceAsync = async (newWorkspace) => {
     try {
         const command = new PutItemCommand(params);
         const response = await db.send(command);
-        if (!response) return serverErrorResponse
+        if (!response) return serverResponses.dataBaseErrorResponse()
 
         return util.buildResponse(200, {
             message: 'Workspace created successfully',
@@ -60,9 +64,10 @@ const createWorkspaceAsync = async (newWorkspace) => {
     }
 };
 
-const getWorkspaceByIdAsync = async (workspaceId) => {
-    const dbWorkspace = await getWorkspaceFromDbAsync(workspaceId);
-    if ( !validateWorkspaceExist(dbWorkspace) ) return workspaceDoesNotExistResponse()
+const getWorkspaceByIdAsync = async (workspaceId) => {    
+    const { hasError, errorResponse, dbWorkspace} = await getWorkspaceFromDbAsync(workspaceId);
+
+    if (hasError) return errorResponse()
 
     const workspaceResponse = {
         id: workspaceId,
@@ -72,8 +77,9 @@ const getWorkspaceByIdAsync = async (workspaceId) => {
 };
 
 const updateWorkspaceAsync = async (workspaceId, workspaceBody) => {
-    const dbWorkspace = await getWorkspaceFromDbAsync(workspaceId);
-    if ( !validateWorkspaceExist(dbWorkspace) ) return workspaceDoesNotExistResponse()
+    const { hasError, errorResponse, dbWorkspace} = await getWorkspaceFromDbAsync(workspaceId);
+    
+    if (hasError) return errorResponse()
 
     const newWorkspaceData = {
         ...workspaceBody
@@ -81,7 +87,7 @@ const updateWorkspaceAsync = async (workspaceId, workspaceBody) => {
 
     const updateResponse = await updateWorkspaceOnDbAsync(workspaceId, newWorkspaceData);
 
-    if (!updateResponse) return serverErrorResponse()
+    if (!updateResponse) return serverResponses.dataBaseErrorResponse()
 
     return util.buildResponse(200, {
         message: 'Workspace data updated successfully',
@@ -92,8 +98,9 @@ const updateWorkspaceAsync = async (workspaceId, workspaceBody) => {
 };
 
 const deleteWorkspaceAsync = async (workspaceId) => {
-    const dbWorkspace = await getWorkspaceFromDbAsync(workspaceId);
-    if ( !validateWorkspaceExist(dbWorkspace) ) return workspaceDoesNotExistResponse()
+    const { hasError, errorResponse, dbWorkspace} = await getWorkspaceFromDbAsync(workspaceId);
+    
+    if (hasError) return errorResponse()
     
     const deleteResponse = await deleteFromDbAsync(workspaceId);
     return util.buildResponse(200,{
@@ -103,7 +110,7 @@ const deleteWorkspaceAsync = async (workspaceId) => {
 
 };
 
-// NOT EXPORTED FUNCTIONS
+// NOT HTTP FUNCTIONS
 const getWorkspaceFromDbAsync = async (workspaceId) => {
     const params = {
         TableName: workspaceTable,
@@ -113,9 +120,16 @@ const getWorkspaceFromDbAsync = async (workspaceId) => {
     try {
         const command = new GetItemCommand(params);
         const response = await db.send(command);
-        return unmarshall(response.Item);
+        
+        if(!response || !response.Item) return { hasError: true, errorResponse: workspaceResponses.workspaceDoesNotExistResponse}
+
+        const dbWorkspace = unmarshall(response.Item);
+
+        const validateObj = workspaceValidations.validateWorkspaceExist(dbWorkspace)
+        return { ...validateObj, dbWorkspace }
+
     } catch (e) {
-        return e;
+        return { hasError: true, errorResponse: serverResponses.serverErrorResponse };
     }
 };
 
@@ -154,18 +168,11 @@ const deleteFromDbAsync = async (workspaceId) => {
     }
 };
 
-const validateWorkspaceExist = (workspace) => {
-    if ( !workspace || !workspace.data || !workspace.workspaceId ) return false
-    return true
-};
-
-const workspaceDoesNotExistResponse = () => util.buildResponse(400, { message: 'Workspace does not exists' });
-const serverErrorResponse = () => util.buildResponse(503, { message: 'Server Error. Please try again later.'});
-
 module.exports = {
     getAllWorkspacesAsync,
     createWorkspaceAsync,
     getWorkspaceByIdAsync,
     updateWorkspaceAsync,
-    deleteWorkspaceAsync
+    deleteWorkspaceAsync,
+    getWorkspaceFromDbAsync
 };

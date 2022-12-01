@@ -1,5 +1,6 @@
 const projectResource = require('./project/projectResource');
 const projectIdResource = require('./project/projectIdResource');
+const projectByWorkspaceIdResource = require('./project/projectByWorkspaceIdResource');
 const taskPackageResource = require('./taskPackage/taskPackageResource');
 const taskPackageIdResource = require('./taskPackage/taskPackageIdResource');
 const templateResource = require('./template/templateResource');
@@ -10,6 +11,7 @@ const workspaceIdResource = require('./workspace/workspaceIdResource');
 module.exports = {
     projectResource,
     projectIdResource,
+    projectByWorkspaceIdResource,
     taskPackageResource,
     taskPackageIdResource,
     templateResource,

@@ -48,6 +48,10 @@ exports.handler = async (event, context, callback) => {
             case event.resource === paths.workspaceIdPath:
                 response = await resources.workspaceIdResource.resourceMethod(event)
                 break;
+
+            case event.resource === paths.workspaceUserIdPath:
+                response = await resources.workspaceUserIdResource.resourceMethod(event)
+                break;
     
             default:
                 response = util.buildResponse(404, '404 - Not Found');

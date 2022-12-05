@@ -7,6 +7,7 @@ const templateResource = require('./template/templateResource');
 const templateIdResource = require('./template/templateIdResource');
 const workspaceResource = require('./workspace/workspaceResource');
 const workspaceIdResource = require('./workspace/workspaceIdResource');
+const workspaceUserIdResource = require('./workspace/workspaceUserIdResource');
 
 module.exports = {
     projectResource,
@@ -17,5 +18,6 @@ module.exports = {
     templateResource,
     templateIdResource,
     workspaceResource,
-    workspaceIdResource
+    workspaceIdResource,
+    workspaceUserIdResource
 }

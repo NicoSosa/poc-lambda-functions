@@ -8,8 +8,9 @@ const tasksPackageIdPath = `${tasksPackagePath}/{id}`;
 const templatePath = '/template';
 const templateIdPath = `${templatePath}/{id}`;
 
-const workspacePath = '/workspace';
+const workspacePath = '/workspace';;
 const workspaceIdPath = `${workspacePath}/{id}`;
+const workspaceUserIdPath = `${workspacePath}/user/{id}`;
 
 module.exports = {
     projectPath,
@@ -20,5 +21,6 @@ module.exports = {
     templatePath,
     templateIdPath,
     workspacePath,
-    workspaceIdPath
+    workspaceIdPath,
+    workspaceUserIdPath
 }

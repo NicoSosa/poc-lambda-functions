@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { DynamoDBClient, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient, BatchGetItemCommand, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb");
 const db = new DynamoDBClient({ region: 'sa-east-1' });
 
@@ -9,6 +9,8 @@ const userWorkspaceTable = 'UserWorkspaceTable';
 const workspaceValidations = require('../infrastructure/validations/workspaceValidations');
 const workspaceResponses = require('../infrastructure/messages/workspaceResponses');
 const serverResponses = require('../infrastructure/messages/serverResponses');
+
+const projectService = require('./projectService');
 
 const util = require('../utils/util');
 
@@ -25,7 +27,7 @@ const getAllWorkspacesAsync = async () => {
             const commonItem = unmarshall(item)
             return {
                 id: commonItem.workspaceId,
-                ...commonItem.data
+                ...commonItem
             }
         });
         return util.buildResponse(200, listResponse);
@@ -42,6 +44,19 @@ const getWorkspaceByUserId = async (userId) => {
 
     return util.buildResponse(200, dbWorkpaces)
 }
+
+const getWorkspaceByIdAsync = async (workspaceId) => {    
+    const { hasError, errorResponse, dbWorkspace} = await getWorkspaceFromDbAsync(workspaceId);
+
+    if (hasError) return errorResponse()
+
+    const workspaceResponse = {
+        id: workspaceId,
+        ...dbWorkspace
+    }
+    return util.buildResponse(200, workspaceResponse);
+};
+
 
 const createWorkspaceAsync = async (newWorkspace) => {
     const newId = uuidv4();
@@ -71,18 +86,6 @@ const createWorkspaceAsync = async (newWorkspace) => {
     } catch (e) {
         return e
     }
-};
-
-const getWorkspaceByIdAsync = async (workspaceId) => {    
-    const { hasError, errorResponse, dbWorkspace} = await getWorkspaceFromDbAsync(workspaceId);
-
-    if (hasError) return errorResponse()
-
-    const workspaceResponse = {
-        id: workspaceId,
-        ...dbWorkspace.data
-    }
-    return util.buildResponse(200, workspaceResponse);
 };
 
 const updateWorkspaceAsync = async (workspaceId, workspaceBody) => {
@@ -123,7 +126,8 @@ const deleteWorkspaceAsync = async (workspaceId) => {
 const getWorkspaceFromDbAsync = async (workspaceId) => {
     const params = {
         TableName: workspaceTable,
-        Key: marshall({ workspaceId })
+        Key: marshall({ workspaceId }),
+        ProjectionExpression: 'details, workspaceId'
     };
 
     try {
@@ -157,15 +161,77 @@ const getWorkspaceFromDbByUserIdAsync = async (userId) => {
 
         if(!response || !response.Items) return { hasError: true, errorResponse: workspaceResponses.userHasNotWorkspaces}
 
-        const dbWorkpaces = response.Items?.map( item => {
+        let projectsArrayAux = []
+
+        const workpacesDescript = await Promise.all(response.Items?.map(async (item) => {
+            const commonItem = unmarshall(item)
+            const { dbWorkspace } = await getWorkspaceFromDbAsync(commonItem.workspaceId);
+            
+            if (commonItem.projectAsManager.length > 0) {
+                projectsArrayAux.push(...commonItem.projectAsManager)
+            }
+            
+            if (commonItem.projectAsDt.length > 0) {
+                projectsArrayAux.push(...commonItem.projectAsDt)
+            }
+            
+            return {
+                workspaceId: commonItem.workspaceId,
+                projectAsManager: commonItem.projectAsManager,
+                projectAsDt: commonItem.projectAsDt,
+                ...dbWorkspace.details
+            }
+        }));
+        
+        const Keys = projectsArrayAux.map((projectId) => { 
+            return marshall({projectId})
+        })
+    
+        const batchParams = {
+            RequestItems: {
+                ProjectTable: {
+                    Keys
+                }
+            }
+        }
+        
+        const batchCommand = new BatchGetItemCommand(batchParams);
+        const listResponse = await db.send(batchCommand);
+
+        if(!listResponse || !listResponse.Responses || !listResponse.Responses.ProjectTable) return { hasError: true, errorResponse: serverResponses.serverErrorResponse }
+
+        const projectsList = listResponse.Responses?.ProjectTable?.map( item => {
             const commonItem = unmarshall(item)
             return {
-                userid: commonItem.userId,
-                workspaceId: commonItem.workspaceId,
                 ...commonItem
             }
         });
+        
+            const dbWorkpaces = workpacesDescript.map( ws => {
+            if (ws.projectAsManager.length > 0) {
+                let arrayAux = []
+                ws.projectAsManager.forEach( id => {
+                    let proj = projectsList.filter( project => project.projectId === id)
+                    if (proj) arrayAux.push(proj)
+                })
+                ws.projectAsManager = [...arrayAux]
+            }
+            
+            if (ws.projectAsDt.length > 0) {
+                let arrayAux = []
+                ws.projectAsDt.forEach( id => {
+                    let proj = projectsList.filter( project => project.projectId === id)
+                    if (proj) arrayAux.push(proj)
+                })
+                
+                ws.projectAsDt = [...arrayAux]
+            }
+            return ws
+        })
+        
+        
         return { hasError: false, dbWorkpaces };
+        //return { hasError: false, dbWorkpaces: { projectsList } };
     } catch (e) {
         return { hasError: true, errorResponse: serverResponses.serverErrorResponse };
     }

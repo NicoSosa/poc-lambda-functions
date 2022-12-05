@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { DynamoDBClient, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient, BatchGetItemCommand, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
 const { UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb");
 const db = new DynamoDBClient({ region: 'sa-east-1' });
@@ -27,7 +27,7 @@ const getAllProjectsAsync = async () => {
             const commonItem = unmarshall(item)
             return {
                 id: commonItem.projectId,
-                ...commonItem.data
+                ...commonItem
             }
         });
         return util.buildResponse(200, listResponse);
@@ -53,7 +53,7 @@ const getProjectsByWorkspaceIdAsync = async (workspaceId) => {
             const commonItem = unmarshall(item)
             return {
                 id: commonItem.projectId,
-                ...commonItem.data
+                ...commonItem
             }
         });
         return util.buildResponse(200, listResponse);
@@ -70,7 +70,7 @@ const getProjectByIdAsync = async (projectId) => {
 
     const projectResponse = {
         id: projectId,
-        ...dbProject.data
+        ...dbProject
     }
     return util.buildResponse(200, projectResponse);
 };
@@ -79,19 +79,31 @@ const createProjectAsync = async (newProject) => {
     const { hasError, errorResponse } = projectValidation.validateNewProjectData(newProject)
     if (hasError) return errorResponse()
 
+    // TODO: creator User Control 
     
     const workspaceValidated = await workspaceService.getWorkspaceFromDbAsync(newProject.workspaceId);
     if (workspaceValidated.hasError) return workspaceValidated.errorResponse()
 
     const newId = uuidv4();
+    
+    const logs = [{
+            date: Date.now(),
+            action: 'Create',
+            // user: newProject.creatorUser
+    }]
+        
     const params = {
         TableName: projectTable,
         Item: marshall({
             projectId: newId,
             workspaceId: newProject.workspaceId,
-            data: {
-                ...newProject
-            }
+            details: { ...newProject.details },
+            staff: [ ...newProject.staff ], 
+            // TODO: add newUserStaff
+            tasksPackages: [ ...newProject.tasksPackages ],
+            status: 0,
+            progress: 0, 
+            logs: [...logs]
         }),
     } 
     
@@ -107,7 +119,7 @@ const createProjectAsync = async (newProject) => {
             metadata: response,
             project: {
                 id: newId,
-                ...newProject
+                ...params.Item
             }
         });
     } catch (e) {
@@ -151,11 +163,9 @@ const deleteProjectAsync = async (projectId) => {
 const getProjectFromDbAsync = async (projectId) => {
     const params = {
         TableName: projectTable,
-        Key: marshall({ 
-            workspaceId: '25882541-e857-4b69-8970-a0d61179d74c',
-            projectId 
-        })
+        Key: marshall({projectId})
     };
+    
 
     try {
         const command = new GetItemCommand(params);
@@ -172,6 +182,38 @@ const getProjectFromDbAsync = async (projectId) => {
         return { hasError: true, errorResponse: serverResponses.serverErrorResponse };
     }
 };
+
+const getProjectListByIdFromDbAsync = async (idsArray) => {
+    const Keys = idsArray.map((projectId) => { 
+        return marshall({projectId})
+     })
+    
+    const params = {
+        RequestItems: {
+            ProjectTable: {
+                Keys
+            }
+        }
+    }
+    
+    try {
+        const command = new BatchGetItemCommand(params);
+        const response = await db.send(command);
+
+        if(!response || !response.Items) return { hasError: true, errorResponse: serverResponses.serverErrorResponse }
+
+        const projectsList = response.Items?.map( item => {
+            const commonItem = unmarshall(item)
+            return {
+                ...commonItem
+            }
+        });
+
+        return { hasError: false, projectsList }
+    } catch (e) {
+        return { hasError: true, errorResponse: serverResponses.serverErrorResponse };
+    }
+}
 
 const updateProjectOnDbAsync = async (projectId, newProjectData) => {
     const params = {
@@ -220,5 +262,7 @@ module.exports = {
     getProjectByIdAsync,
     createProjectAsync,
     updateProjectAsync,
-    deleteProjectAsync
+    deleteProjectAsync,
+    getProjectFromDbAsync,
+    getProjectListByIdFromDbAsync
 };

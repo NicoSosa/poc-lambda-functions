@@ -13,7 +13,7 @@ const validateNewProjectData = (project) => {
     validated = validateProjectTasksIncidences(project)
     if(validated.hasError) return {...validated}
     
-    validated = validateProjectUsers(project)
+    validated = validateProjectStaff(project)
     if(validated.hasError) return {...validated}
     
     return { hasError: false }
@@ -31,23 +31,23 @@ const validateProjectWorkspaceId = (project) => {
 }
 
 const validateProjectDetails = (project) => {
-    if (!project.details) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotDetailsResponse }
+    if (!project.details || !project.details.name || !project.details.projectType || !project.details.initialDate ) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotDetailsResponse }
     return { hasError: false }
 }
 
 const validateProjectTasksIncidences = (project) => {
-    if (!project.users || project.users.length < 1) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotTasksResponse }
+    if (!project.tasksPackages || project.tasksPackages.length < 1) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotTasksResponse }
     return { hasError: false }
 }
 
-const validateProjectUsers = (project) => {
-    if (!project.users || project.users.length < 1) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotUsersResponse }
+const validateProjectStaff = (project) => {
+    if (!project.staff || project.staff.length < 1) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotUsersResponse }
     return { hasError: false }
 }
 
 
 const validateProjectExist = (project) => {
-    if ( !project || !project.data || !project.projectId ) return { hasError: true, errorResponse: projectResponse.projectDoesNotExistResponse}
+    if ( !project || !project.details || !project.projectId ) return { hasError: true, errorResponse: projectResponse.projectDoesNotExistResponse}
     return { hasError: false }
 }
 
@@ -55,6 +55,6 @@ module.exports = {
     validateNewProjectData,
     validateProjectDetails,
     validateProjectTasksIncidences,
-    validateProjectUsers,
+    validateProjectStaff,
     validateProjectExist
 }

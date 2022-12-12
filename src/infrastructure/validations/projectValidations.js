@@ -4,6 +4,9 @@ const validateNewProjectData = (project) => {
     let validated = validateProject(project)
     if(validated.hasError) return {...validated}
     
+    validated = validateProjectUserId(project)
+    if(validated.hasError) return {...validated}
+
     validated = validateProjectWorkspaceId(project)
     if(validated.hasError) return {...validated}
     
@@ -25,6 +28,11 @@ const validateProject = (project) => {
     return { hasError: false }
 }
 
+const validateProjectUserId = (project) => {
+    if (!project.userId) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotUserIdResponse }
+    return { hasError: false }
+}
+
 const validateProjectWorkspaceId = (project) => {
     if (!project.workspaceId) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotWorkspaceIdResponse }
     return { hasError: false }
@@ -38,6 +46,10 @@ const validateProjectDetails = (project) => {
 const validateProjectTasksIncidences = (project) => {
     if (!project.tasksPackages || project.tasksPackages.length < 1) return { hasError: true, errorResponse: projectResponse.projectRequestHasNotTasksResponse }
     return { hasError: false }
+}
+
+const validateReportExistence = (report) => {
+    if(!report || report.novelties.length < 1) return { hasError: true, errorResponse: projectResponse.reportHasNotNovelties }
 }
 
 const validateProjectStaff = (project) => {
@@ -55,6 +67,7 @@ module.exports = {
     validateNewProjectData,
     validateProjectDetails,
     validateProjectTasksIncidences,
+    validateReportExistence,
     validateProjectStaff,
     validateProjectExist
 }

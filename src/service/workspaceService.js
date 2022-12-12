@@ -212,19 +212,18 @@ const getWorkspaceFromDbByUserIdAsync = async (userId) => {
                 let arrayAux = []
                 ws.projectAsManager.forEach( id => {
                     let proj = projectsList.filter( project => project.projectId === id)
-                    if (proj) arrayAux.push(proj)
+                    if (proj) arrayAux.push({...proj[0], role: 'manager'})
                 })
-                ws.projectAsManager = [...arrayAux]
+                ws.projects = [...arrayAux]
             }
             
             if (ws.projectAsDt.length > 0) {
                 let arrayAux = []
                 ws.projectAsDt.forEach( id => {
                     let proj = projectsList.filter( project => project.projectId === id)
-                    if (proj) arrayAux.push(proj)
+                    if (proj) arrayAux.push({...proj[0], role: 'dt'})
                 })
-                
-                ws.projectAsDt = [...arrayAux]
+                ws.projects = [...arrayAux]
             }
             return ws
         })

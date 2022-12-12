@@ -1,16 +1,18 @@
 const { v4: uuidv4 } = require('uuid');
-const { DynamoDBClient, BatchGetItemCommand, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient, BatchGetItemCommand, BatchWriteItemCommand, ScanCommand, GetItemCommand, PutItemCommand, DeleteItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb");
 const { UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb");
 const db = new DynamoDBClient({ region: 'sa-east-1' });
 
 const projectTable = 'ProjectTable';
+const userWorkspaceTable = 'UserWorkspaceTable';
 
 const projectValidation = require('../infrastructure/validations/projectValidations');
 const projectResponses = require('../infrastructure/messages/projectResponses');
 const serverResponses = require('../infrastructure/messages/serverResponses');
 
 const workspaceService = require('./workspaceService');
+const userService = require('./userService');
 
 const util = require('../utils/util');
 
@@ -78,37 +80,131 @@ const getProjectByIdAsync = async (projectId) => {
 const createProjectAsync = async (newProject) => {
     const { hasError, errorResponse } = projectValidation.validateNewProjectData(newProject)
     if (hasError) return errorResponse()
+    
 
-    // TODO: creator User Control 
+    const userValidated = await userService.getUserFromDbAsync(newProject.userId);
+    if (userValidated.hasError) return userValidated.errorResponse()
     
     const workspaceValidated = await workspaceService.getWorkspaceFromDbAsync(newProject.workspaceId);
     if (workspaceValidated.hasError) return workspaceValidated.errorResponse()
 
-    const newId = uuidv4();
+    const newProjectId = uuidv4();
     
     const logs = [{
             date: Date.now(),
             action: 'Create',
-            // user: newProject.creatorUser
+            user: {...userValidated.dbUser}
     }]
-        
-    const params = {
-        TableName: projectTable,
-        Item: marshall({
-            projectId: newId,
+    
+    const newProjectDto = {
+            projectId: newProjectId,
             workspaceId: newProject.workspaceId,
             details: { ...newProject.details },
-            staff: [ ...newProject.staff ], 
+            staff: [ 
+                {
+                    userId: userValidated.dbUser.userId,
+                    email: userValidated.dbUser.email,
+                    name: `${userValidated.dbUser.name} ${userValidated.dbUser.surname}`,
+                    role: 0
+                },
+                ...newProject.staff], 
             // TODO: add newUserStaff
             tasksPackages: [ ...newProject.tasksPackages ],
             status: 0,
             progress: 0, 
+            reports: [],
             logs: [...logs]
-        }),
-    } 
+        }
     
+    const params = {
+        TableName: projectTable,
+        Item: marshall(newProjectDto),
+    } 
+
     try {
-        const command = new PutItemCommand(params);
+        
+        const Keys = newProjectDto.staff.map((userProject) => { 
+            return marshall({
+                userId: userProject.userId,
+                workspaceId: newProject.workspaceId
+
+            })
+        })
+        
+        const batchParams = {
+            RequestItems: {
+                [userWorkspaceTable]: {
+                    Keys
+                }
+            }
+        }
+
+        const batchCommand = new BatchGetItemCommand(batchParams);
+        const listResponse = await db.send(batchCommand);
+
+        if(!listResponse || !listResponse.Responses || !listResponse.Responses.UserWorkspaceTable) return { hasError: true, errorResponse: serverResponses.serverErrorResponse }
+
+        const userWorkspaceList = listResponse.Responses?.UserWorkspaceTable?.map( item => {
+            const commonItem = unmarshall(item)
+            return {
+                ...commonItem
+            }
+        });
+
+        const updatedUserWorkspaces = newProjectDto.staff.map((userProject) => {
+            let wsUser = userWorkspaceList.find((ws) => ws.userId === userProject.userId)
+            if (wsUser) {
+                wsUser.projectCount = wsUser.projectCount + 1;
+                if (userProject.role == 0) wsUser.projectAsManager.push(newProjectId)
+                if (userProject.role == 1) wsUser.projectAsDt.push(newProjectId)
+            } else {
+                wsUser = {} 
+                wsUser.userId = userProject.userId,
+                wsUser.workspaceId = newProjectDto.workspaceId,
+                wsUser.projectCount = 1
+                
+                if (userProject.role == 0) {
+                    wsUser.projectAsManager = [newProjectId]
+                    wsUser.projectAsDt = []
+                }
+                if (userProject.role == 1) {
+                    wsUser.projectAsManager = []
+                    wsUser.projectAsDt = [newProjectId]
+                }
+            }
+            return {
+             PutRequest: {
+                 Item: {
+                    ...marshall(wsUser)
+                 }
+             }   
+            }
+        })
+
+        const batchCreateParams = {
+            RequestItems: {
+                [userWorkspaceTable]: [
+                    ...updatedUserWorkspaces
+                ],
+                [projectTable]: [
+                    {
+                        PutRequest: {
+                            Item: {
+                            ...marshall(newProjectDto)
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+
+        // return util.buildResponse(200, {
+        //     batchCreateParams
+        // });
+
+        const command = new BatchWriteItemCommand(batchCreateParams)
+
+        //const command = new PutItemCommand(params);
         const response = await db.send(command);
         if (!response) return serverResponses.dataBaseErrorResponse()
 
@@ -118,8 +214,7 @@ const createProjectAsync = async (newProject) => {
             message: 'Project created successfully',
             metadata: response,
             project: {
-                id: newId,
-                ...params.Item
+                ...newProjectDto
             }
         });
     } catch (e) {
@@ -135,14 +230,18 @@ const updateProjectAsync = async (projectId, projectBody) => {
         ...projectBody
     };
 
-    const updateResponse = await updateProjectOnDbAsync(projectId, newProjectData);
+    //const updateResponse = await updateProjectOnDbAsync(projectId, newProjectData);
 
-    if (!updateResponse) return serverResponses.dataBaseErrorResponse()
+    //if (!updateResponse) return serverResponses.dataBaseErrorResponse()
 
-    return util.buildResponse(200, {
-        message: 'Project data updated successfully',
-        metadata: updateResponse,
-        updatedData: {...newProjectData}
+    // return util.buildResponse(200, {
+    //     message: 'Project data updated successfully',
+    //     metadata: updateResponse,
+    //     updatedData: {...newProjectData}
+    // });
+    return util.buildResponse(503, {
+        message: 'The update method has not implemented in the server',
+        noUpdatedData: {...newProjectData}
     });
 
 };
@@ -159,6 +258,36 @@ const deleteProjectAsync = async (projectId) => {
 
 };
 
+const createProjectReportAsync = async (projectId, newProjectReport) => { 
+    //const validation = projectValidation.validateReportExistence(newProjectReport);
+    //if (validation.hasError) return validation.errorResponse()
+
+    const { hasError, errorResponse, dbProject } = await getProjectFromDbAsync(projectId);
+    if (hasError) return errorResponse()
+    
+    //const updatedReportArray = newProjectReport
+    dbProject.reports.push({...newProjectReport})
+
+    const params = {
+        TableName: projectTable,
+        Key: { projectId },
+        UpdateExpression: "set reports = :r",
+        ExpressionAttributeValues: {
+            ":r": dbProject.reports,
+        }
+    } 
+    
+    try {
+        const command = new UpdateCommand(params);
+        const response = await db.send(command);
+        return util.buildResponse(201, response);
+        
+        // TODO: create log method
+    } catch (e) {
+        return { hasError: true, errorResponse: serverResponses.serverErrorResponse };
+    }
+}
+
 // NOT HTTP FUNCTIONS
 const getProjectFromDbAsync = async (projectId) => {
     const params = {
@@ -166,7 +295,7 @@ const getProjectFromDbAsync = async (projectId) => {
         Key: marshall({projectId})
     };
     
-
+    
     try {
         const command = new GetItemCommand(params);
         const response = await db.send(command);
@@ -184,6 +313,8 @@ const getProjectFromDbAsync = async (projectId) => {
 };
 
 const getProjectListByIdFromDbAsync = async (idsArray) => {
+    // TODO Reagroup this method in a new folder called DataAccess    
+
     const Keys = idsArray.map((projectId) => { 
         return marshall({projectId})
      })
@@ -263,6 +394,7 @@ module.exports = {
     createProjectAsync,
     updateProjectAsync,
     deleteProjectAsync,
+    createProjectReportAsync,
     getProjectFromDbAsync,
     getProjectListByIdFromDbAsync
 };

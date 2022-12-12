@@ -22,6 +22,18 @@ exports.handler = async (event, context, callback) => {
                 response = await resources.projectByWorkspaceIdResource.resourceMethod(event)
                 break;
 
+            case event.resource === paths.projectDetailsPath:
+                response = await resources.projectDetailsResource.resourceMethod(event)
+                break;
+
+            case event.resource === paths.projectIncidencesPath:
+                response = await resources.projectIncidencesResource.resourceMethod(event)
+                break;
+                
+            case event.resource === paths.projectReportsPath:
+                response = await resources.projectReportsResource.resourceMethod(event)
+                break;
+
             // TASK-PACKAGE
             case event.resource === paths.tasksPackagePath:
                 response = await resources.taskPackageResource.resourceMethod(event)

@@ -1,6 +1,9 @@
 const projectPath = '/project';
 const projectPathIdPath = `${projectPath}/{id}`;
 const projectByWorkspaceIdPath = `${projectPath}/workspace/{id}`;
+const projectDetailsPath = `${projectPathIdPath}/details`;
+const projectIncidencesPath = `${projectPathIdPath}/incidences`;
+const projectReportsPath = `${projectPathIdPath}/reports`;
 
 const tasksPackagePath = '/task-package';
 const tasksPackageIdPath = `${tasksPackagePath}/{id}`;
@@ -16,6 +19,9 @@ module.exports = {
     projectPath,
     projectPathIdPath,
     projectByWorkspaceIdPath,
+    projectDetailsPath,
+    projectIncidencesPath,
+    projectReportsPath,
     tasksPackagePath,
     tasksPackageIdPath,
     templatePath,

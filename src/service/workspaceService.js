@@ -208,6 +208,7 @@ const getWorkspaceFromDbByUserIdAsync = async (userId) => {
         });
         
             const dbWorkpaces = workpacesDescript.map( ws => {
+                ws.projects = []
             if (ws.projectAsManager.length > 0) {
                 let arrayAux = []
                 ws.projectAsManager.forEach( id => {
@@ -223,7 +224,7 @@ const getWorkspaceFromDbByUserIdAsync = async (userId) => {
                     let proj = projectsList.filter( project => project.projectId === id)
                     if (proj) arrayAux.push({...proj[0], role: 'dt'})
                 })
-                ws.projects = [...arrayAux]
+                ws.projects = [... ws.projects, ...arrayAux]
             }
             return ws
         })

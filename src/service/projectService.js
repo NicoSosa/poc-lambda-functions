@@ -115,11 +115,6 @@ const createProjectAsync = async (newProject) => {
             reports: [],
             logs: [...logs]
         }
-    
-    const params = {
-        TableName: projectTable,
-        Item: marshall(newProjectDto),
-    } 
 
     try {
         
@@ -198,18 +193,12 @@ const createProjectAsync = async (newProject) => {
             }
         }
 
-        // return util.buildResponse(200, {
-        //     batchCreateParams
-        // });
-
         const command = new BatchWriteItemCommand(batchCreateParams)
 
-        //const command = new PutItemCommand(params);
         const response = await db.send(command);
         if (!response) return serverResponses.dataBaseErrorResponse()
 
         // TODO: add project to workspace
-
         return util.buildResponse(200, {
             message: 'Project created successfully',
             metadata: response,
@@ -259,13 +248,9 @@ const deleteProjectAsync = async (projectId) => {
 };
 
 const createProjectReportAsync = async (projectId, newProjectReport) => { 
-    //const validation = projectValidation.validateReportExistence(newProjectReport);
-    //if (validation.hasError) return validation.errorResponse()
-
     const { hasError, errorResponse, dbProject } = await getProjectFromDbAsync(projectId);
     if (hasError) return errorResponse()
     
-    //const updatedReportArray = newProjectReport
     dbProject.reports.push({...newProjectReport})
 
     const params = {
@@ -274,6 +259,32 @@ const createProjectReportAsync = async (projectId, newProjectReport) => {
         UpdateExpression: "set reports = :r",
         ExpressionAttributeValues: {
             ":r": dbProject.reports,
+        }
+    } 
+    
+    try {
+        const command = new UpdateCommand(params);
+        const response = await db.send(command);
+        return util.buildResponse(201, response);
+        
+        // TODO: create log method
+    } catch (e) {
+        return { hasError: true, errorResponse: serverResponses.serverErrorResponse };
+    }
+}
+
+const updateProjectIncidencesAsync = async (projectId, incidencesBody) => { 
+    const { hasError, errorResponse, dbProject } = await getProjectFromDbAsync(projectId);
+    if (hasError) return errorResponse()
+    
+    const params = {
+        TableName: projectTable,
+        Key: { projectId },
+        UpdateExpression: "set tasksPackages = :tp, status = :s, progress = :p",
+        ExpressionAttributeValues: {
+            ":tp": incidencesBody.project.tasksPackages,
+            ":s": incidencesBody.project.status,
+            ":p": incidencesBody.project.progress
         }
     } 
     
@@ -395,6 +406,7 @@ module.exports = {
     updateProjectAsync,
     deleteProjectAsync,
     createProjectReportAsync,
+    updateProjectIncidencesAsync,
     getProjectFromDbAsync,
     getProjectListByIdFromDbAsync
 };

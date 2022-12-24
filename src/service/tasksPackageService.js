@@ -20,7 +20,7 @@ const getAllTasksPackagesAsync = async () => {
             const commonItem = unmarshall(item)
             return {
                 id: commonItem.tasksPackageId,
-                ...commonItem.data
+                ...commonItem.details
             }
         });
         return util.buildResponse(200, listResponse);
@@ -36,7 +36,7 @@ const createTasksPackageAsync = async (newTasksPackage) => {
         TableName: tasksPackageTable,
         Item: marshall({
             tasksPackageId: newId,
-            data: {
+            details: {
                 ...newTasksPackage
             }
         }),
@@ -66,7 +66,7 @@ const getTasksPackageByIdAsync = async (tasksPackageId) => {
 
     const tasksPackageResponse = {
         id: tasksPackageId,
-        ...dbTasksPackage.data
+        ...dbTasksPackage.details
     }
     return util.buildResponse(200, tasksPackageResponse);
 
@@ -125,7 +125,7 @@ const updateTasksPackagOnDbeAsync = async (tasksPackageId, newTaskPackageData) =
         TableName: tasksPackageTable,
         Item: marshall({
             tasksPackageId,
-            data: {
+            details: {
                 ...newTaskPackageData
             }
         }),
@@ -156,7 +156,7 @@ const deleteFromDbAsync = async (tasksPackageId) => {
 };
 
 const validateTaskPackageExist = (tasksPackage) => {
-    if ( !tasksPackage || !tasksPackage.data || !tasksPackage.tasksPackageId ) return false
+    if ( !tasksPackage || !tasksPackage.details || !tasksPackage.tasksPackageId ) return false
     return true
 };
 

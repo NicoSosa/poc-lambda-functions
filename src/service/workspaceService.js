@@ -64,7 +64,7 @@ const createWorkspaceAsync = async (newWorkspace) => {
         TableName: workspaceTable,
         Item: marshall({
             workspaceId: newId,
-            data: {
+            details: {
                 ...newWorkspace
             }
         }),
@@ -243,7 +243,7 @@ const updateWorkspaceOnDbAsync = async (workspaceId, newWorkspaceData) => {
         TableName: workspaceTable,
         Item: marshall({
             workspaceId,
-            data: {
+            details: {
                 ...newWorkspaceData
             }
         }),

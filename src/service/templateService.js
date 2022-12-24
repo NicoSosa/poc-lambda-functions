@@ -20,7 +20,7 @@ const getAllTemplatesAsync = async () => {
             const commonItem = unmarshall(item)
             return {
                 id: commonItem.templateId,
-                ...commonItem.data
+                ...commonItem.details
             }
         });
         return util.buildResponse(200, listResponse);
@@ -36,7 +36,7 @@ const createTemplateAsync = async (newTemplate) => {
         TableName: templateTable,
         Item: marshall({
             templateId: newId,
-            data: {
+            details: {
                 ...newTemplate
             }
         }),
@@ -66,7 +66,7 @@ const getTemplateByIdAsync = async (templateId) => {
 
     const templateResponse = {
         id: templateId,
-        ...dbTemplate.data
+        ...dbTemplate.details
     }
     return util.buildResponse(200, templateResponse);
 
@@ -125,7 +125,7 @@ const updateTemplateOnDbAsync = async (templateId, newTemplateData) => {
         TableName: templateTable,
         Item: marshall({
             templateId,
-            data: {
+            details: {
                 ...newTemplateData
             }
         }),
@@ -156,7 +156,7 @@ const deleteFromDbAsync = async (templateId) => {
 };
 
 const validateTemplateExist = (template) => {
-    if ( !template || !template.data || !template.templateId ) return false
+    if ( !template || !template.details || !template.templateId ) return false
     return true
 };
 
